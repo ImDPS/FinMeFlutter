@@ -20,7 +20,7 @@ A premium, glassmorphism-first personal finance companion for Indians — tracki
 1. Give instant clarity on where money goes (expense tracking + categorization)
 2. Help stay within self-set budgets per category
 3. Show real-time net worth across bank accounts, credit cards, mutual funds, and stocks
-4. Pull data automatically via Account Aggregator, with manual entry as fallback
+4. Pull data automatically via SMS parsing (bank transaction SMS), with manual entry as fallback
 5. Work reliably offline for core flows, sync when connected
 
 ### Non-Goals (explicitly out of scope)
@@ -34,7 +34,7 @@ A premium, glassmorphism-first personal finance companion for Indians — tracki
 
 ### Success Criteria
 
-- All linked accounts reflect within 24hrs of a transaction
+- All SMS-imported transactions reflect within minutes of receiving bank SMS
 - Monthly budget vs actual visible in under 2 taps
 - Net worth dashboard loads in under 1 second (from cache)
 - App unlocks in under 1 second via biometric
@@ -86,10 +86,10 @@ Tab 5 — Profile & Settings
 - Sections: Bank Accounts · Credit Cards · Mutual Funds · Stocks
 - Each section expandable — shows individual accounts/holdings
 - Net worth trend chart: v1.1 feature; v1.0 shows placeholder stub ("Trends coming soon")
-- Last synced timestamp + consent expiry status per account
+- Last synced timestamp per account
 
 #### Tab 5 — Profile & Settings
-- Linked accounts management (add/remove via AA; consent expiry shown per account)
+- Linked accounts management (add/remove manually)
 - Manual accounts (cash, informal savings)
 - Monthly income setting (manual INR figure used for Dashboard spend-vs-income)
 - Security (biometric toggle, change PIN, app lock timeout)
@@ -98,10 +98,9 @@ Tab 5 — Profile & Settings
 
 ### Key Overlay Flows
 
-- Onboarding: phone OTP login → biometric setup → link first account via AA
+- Onboarding: phone OTP login → biometric setup → grant SMS permission → auto-import transactions
 - Add Transaction: modal bottom sheet, accessible from any tab via FAB
-- Account Aggregator consent flow: in-app webview, RBI-mandated
-- AA consent renewal: triggered when consent is near-expiry or expired; banner on Dashboard and Net Worth with "Re-authorise" CTA
+- SMS import flow: request SMS read permission → scan bank SMS → parse and import transactions
 
 ### UI State Policy
 
@@ -111,7 +110,7 @@ Every major screen must handle three states:
 |---|---|
 | Loading | Skeleton shimmer cards — never blank white flash |
 | Empty | Illustration + contextual message + primary CTA (e.g., "Link your first account") |
-| Error | Inline error card with message + retry button; AA sync failure shows "Last sync failed — tap to retry" with timestamp |
+| Error | Inline error card with message + retry button; sync failure shows "Last sync failed — tap to retry" with timestamp |
 
 ---
 
@@ -191,13 +190,13 @@ Schema:
 
 accounts table:
   id, name, type, institution, balance, last_synced,
-  consent_expiry_date (AA consent expiry; null for manual accounts),
-  consent_status ('active' | 'expiring_soon' | 'expired' | 'revoked' | 'manual')
+  consent_expiry_date (unused — retained for schema compatibility; null for all accounts),
+  consent_status ('active' | 'manual')
 
 transactions table:
   id, account_id, amount, category, merchant, date, note, source
-  source: 'aa_sync' | 'manual'
-  category defaults to 'uncategorized' for AA transactions until user assigns
+  source: 'sms_import' | 'manual'
+  category defaults to 'uncategorized' for SMS-imported transactions until user assigns
 
 budgets table:
   id, category, limit_amount, month, year
@@ -217,7 +216,7 @@ user_settings table:
 
 ### Transaction Category Taxonomy (Default)
 
-AA-synced transactions default to uncategorized. Keyword-based auto-categorization is a v1.1 enhancement. Default categories:
+SMS-imported transactions default to uncategorized. Keyword-based auto-categorization is a v1.1 enhancement. Default categories:
 
 Food & Dining, Transport, Utilities, Shopping, Entertainment,
 Health & Medical, Education, Travel, Personal Care, Other, Uncategorized
@@ -243,26 +242,21 @@ Security rules: auth.uid match enforced on every document. Only the authenticate
 | WRITE | Write to local DB immediately + queue in sync_queue |
 | SYNC | On connectivity restore, flush sync_queue to Firestore |
 | CONFLICT | Local write wins (last-write wins; solo app, no conflicts) |
-| AA SYNC | Requires internet — background fetch every 24hrs or manual pull-to-refresh |
+| SMS IMPORT | Runs on-device — scans SMS inbox on app open or manual pull-to-refresh, no internet needed |
 | SYNC FAILURE | Exponential backoff 2s → 4s → 8s, max 3 retries; surface failed-sync banner in UI |
 
-### Account Aggregator Flow (Setu FIU)
+### SMS-Based Transaction Import
 
-1. User taps "Link Account"
-2. App calls Setu FIU API — receives consent artefact + consent_expiry_date
-3. consent_expiry_date stored in accounts table
-4. In-app webview opens RBI-mandated AA consent screen
-5. User approves on their bank AA app (PhonePe, Perfios, etc.)
-6. Setu delivers encrypted FI data to Firebase Cloud Function
-7. Cloud Function decrypts → normalises → writes to Firestore → triggers local sync
-8. User sees updated balances and transactions
+1. User grants SMS read permission on first launch (Android only)
+2. App scans SMS inbox for bank transaction messages (debit/credit alerts)
+3. Regex parser extracts: amount, bank name, account suffix, date, merchant/narration
+4. Parsed transactions inserted into Drift DB with `source = 'sms_import'`
+5. Duplicate detection: skip SMS already imported (match by SMS timestamp + amount + account)
+6. User sees imported transactions on Transactions screen
 
-Consent expiry handling:
-- 7 days before expiry: show "Consent expiring soon" banner on Dashboard
-- On expiry: block AA sync, mark consent_status = expired, show "Re-authorise" CTA
-- Re-consent mirrors the initial consent flow (steps 1-8 above)
+Supported banks (regex patterns): SBI, HDFC, ICICI, Axis, Kotak, PNB, BOB, Yes Bank, IndusInd, and other major Indian banks that send standardised debit/credit SMS.
 
-Supported FI types: Savings accounts, Current accounts, Credit cards, Mutual funds, Equity (Demat)
+Fallback: Manual entry for banks with non-standard SMS format or for cash transactions.
 
 ### Security Architecture
 
@@ -277,7 +271,7 @@ App lock timeout     : Configurable — 30s (default) | 1 min | 5 min
                        App locks when backgrounded beyond timeout duration
 Screen recording     : FLAG_SECURE on all financial screens (Android);
                        equivalent iOS screenshot prevention on all financial screens
-AA tokens            : Flutter Secure Storage only — never written to Firestore
+SMS data             : Read-only, processed on-device — never uploaded to any server
 Analytics            : None — no analytics or crash reporting SDK
 Data residency       : Firebase asia-south1 (Mumbai) — DPDP Act 2023 aligned
 
@@ -288,8 +282,7 @@ Data residency       : Firebase asia-south1 (Mumbai) — DPDP Act 2023 aligned
 1. Local Drift SQLCipher database wiped
 2. All Firestore documents under users/{uid}/ deleted
 3. Firebase Auth account deleted
-4. User prompted to revoke AA consents via Setu portal (deep-link provided)
-5. App resets to onboarding screen
+4. App resets to onboarding screen
 
 ---
 
@@ -299,12 +292,12 @@ Data residency       : Firebase asia-south1 (Mumbai) — DPDP Act 2023 aligned
 
 | Feature | Description |
 |---|---|
-| Onboarding | Phone OTP login → biometric setup → link first account via AA |
+| Onboarding | Phone OTP login → biometric setup → grant SMS permission → auto-import |
 | Dashboard | Total balance, monthly spend vs manual income, recent transactions, net worth delta |
 | Transactions | Full list, search, filter, manual entry, category editing, uncategorized tagging |
 | Budgets | Per-category budgets, progress bars, color-coded alerts |
 | Net Worth | Bank + card balances, MF + stock holdings read-only; trend chart stub |
-| AA Sync | Link accounts, consent expiry tracking + renewal flow, 24hr auto-refresh |
+| SMS Import | Auto-import bank transactions from SMS, background periodic scan, manual refresh |
 | Offline mode | Read + manual write without internet; sync queue with retry + failure state |
 | Security | Biometric + PIN, brute-force lockout, configurable lock timeout, screen recording protection |
 | Data export | CSV download of all transactions |
@@ -313,7 +306,7 @@ Data residency       : Firebase asia-south1 (Mumbai) — DPDP Act 2023 aligned
 ### Version 1.1 — Polish & Depth
 
 - Net worth trend chart (month-over-month line graph)
-- Keyword-based auto-categorization of AA transactions
+- Keyword-based auto-categorization of SMS-imported transactions
 - Recurring transaction detection (auto-tag EMIs, subscriptions)
 - Monthly spending report (shareable card)
 - Category-wise spend trends (3/6/12 month bar charts)
@@ -349,9 +342,9 @@ Data residency       : Firebase asia-south1 (Mumbai) — DPDP Act 2023 aligned
 | Local Database | Drift (SQLite) + SQLCipher (sqlcipher_flutter_libs) |
 | Cloud Database | Firebase Firestore (asia-south1, Mumbai) |
 | Authentication | Firebase Auth (phone OTP) |
-| Account Aggregator | Setu FIU SDK |
+| SMS Import | telephony / flutter_sms_inbox (on-device SMS reading) |
 | Biometric | local_auth |
-| Secure Storage | flutter_secure_storage (DB key + PIN hash + AA tokens) |
+| Secure Storage | flutter_secure_storage (DB key + PIN hash) |
 | Charts | fl_chart |
 | Icons | Lucide Icons (flutter_lucide) |
 | HTTP Client | Dio |
@@ -368,9 +361,9 @@ Data residency       : Firebase asia-south1 (Mumbai) — DPDP Act 2023 aligned
 - No crash reporting with remote upload
 - All financial data encrypted at rest (SQLCipher AES-256) and in transit (TLS)
 - Firestore data physically stored in Mumbai (asia-south1)
-- Account Aggregator (Setu) is RBI-regulated — contractually prohibited from storing financial data
+- SMS parsing is entirely on-device — no bank data leaves the phone (no third-party API calls)
 - App is for personal use only — not published on Play Store or App Store publicly
-- Full data deletion (local DB + Firestore + Firebase Auth + AA consent prompt) available from Settings
+- Full data deletion (local DB + Firestore + Firebase Auth) available from Settings
 - Screen recording and screenshots blocked on all financial screens
 - DPDP Act 2023 aligned (Indian data residency)
 - WCAG AA contrast compliance verified on all text/background combinations
