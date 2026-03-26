@@ -1,0 +1,71 @@
+name: FinMe CI
+
+on:
+  push:
+    branches: [master, main, develop]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.5'
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run code generation
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Run tests
+        run: flutter test --coverage
+
+      - name: Check coverage >= 60%
+        run: |
+          sudo apt-get install -y lcov
+          LINES=$(lcov --summary coverage/lcov.info 2>&1 | grep "lines" | grep -oP '[\d.]+(?=%)' | head -1)
+          echo "Line coverage: ${LINES}%"
+          if [ -z "$LINES" ]; then
+            echo "Could not parse coverage — skipping check"
+          elif (( $(echo "$LINES < 60" | bc -l) )); then
+            echo "Coverage ${LINES}% is below 60% minimum"
+            exit 1
+          fi
+
+  build-android:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.5'
+          channel: 'stable'
+          cache: true
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run code generation
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Build APK (debug)
+        run: flutter build apk --debug
