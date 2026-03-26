@@ -1,33 +1,30 @@
-import * as functions from "firebase-functions";
-import * as admin from "firebase-admin";
-
-admin.initializeApp();
-
 /**
- * Creates a Setu AA consent request for the given phone number.
- * Returns the redirect URL to show in a WebView.
+ * Import function triggers from their respective submodules:
  *
- * In production, replace the mock URL with a real Setu API call using
- * your FIU client credentials stored in Firebase Secret Manager.
+ * import {onCall} from "firebase-functions/v2/https";
+ * import {onDocumentWritten} from "firebase-functions/v2/firestore";
+ *
+ * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
-export const createConsentRequest = functions
-  .region("asia-south1")
-  .https.onCall(async (data: { phoneNumber: string }) => {
-    const { phoneNumber } = data;
 
-    if (!phoneNumber || !phoneNumber.startsWith("+91")) {
-      throw new functions.https.HttpsError(
-        "invalid-argument",
-        "phoneNumber must be a valid Indian mobile number starting with +91"
-      );
-    }
+import {setGlobalOptions} from "firebase-functions";
 
-    // TODO: Replace with real Setu AA API call
-    // const setuResponse = await setuClient.createConsent({ vua: `${phoneNumber}@setu` });
-    // return { redirectUrl: setuResponse.url };
+// Start writing functions
+// https://firebase.google.com/docs/functions/typescript
 
-    const mockConsentId = `consent-${Date.now()}`;
-    return {
-      redirectUrl: `https://setu.co/aa-sdk/consent?id=${mockConsentId}&phone=${encodeURIComponent(phoneNumber)}`,
-    };
-  });
+// For cost control, you can set the maximum number of containers that can be
+// running at the same time. This helps mitigate the impact of unexpected
+// traffic spikes by instead downgrading performance. This limit is a
+// per-function limit. You can override the limit for each function using the
+// `maxInstances` option in the function's options, e.g.
+// `onRequest({ maxInstances: 5 }, (req, res) => { ... })`.
+// NOTE: setGlobalOptions does not apply to functions using the v1 API. V1
+// functions should each use functions.runWith({ maxInstances: 10 }) instead.
+// In the v1 API, each function can only serve one request per container, so
+// this will be the maximum concurrent request count.
+setGlobalOptions({maxInstances: 10});
+
+// export const helloWorld = onRequest((request, response) => {
+//   logger.info("Hello logs!", {structuredData: true});
+//   response.send("Hello from Firebase!");
+// });

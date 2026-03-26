@@ -1,0 +1,46 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "finme-0000",
+          "appId": "1:296763509041:android:ee6b938a4f0412828c8810",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "finme-0000",
+          "configurations": {
+            "android": "1:296763509041:android:ee6b938a4f0412828c8810",
+            "ios": "1:296763509041:ios:4ef788b3610e5ae08c8810"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "database": "finme-app",
+    "location": "asia-south1",
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "predeploy": [
+        "cd functions && npm run lint",
+        "cd functions && npm run build"
+      ]
+    }
+  ]
+}
