@@ -1,0 +1,103 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'dashboard_provider.dart';
+
+// **************************************************************************
+// RiverpodGenerator
+// **************************************************************************
+
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
+
+@ProviderFor(dashboardRepository)
+final dashboardRepositoryProvider = DashboardRepositoryProvider._();
+
+final class DashboardRepositoryProvider extends $FunctionalProvider<
+    DashboardRepository,
+    DashboardRepository,
+    DashboardRepository> with $Provider<DashboardRepository> {
+  DashboardRepositoryProvider._()
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'dashboardRepositoryProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$dashboardRepositoryHash();
+
+  @$internal
+  @override
+  $ProviderElement<DashboardRepository> $createElement(
+          $ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  DashboardRepository create(Ref ref) {
+    return dashboardRepository(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(DashboardRepository value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<DashboardRepository>(value),
+    );
+  }
+}
+
+String _$dashboardRepositoryHash() =>
+    r'664040fa8c8027dd1a46195a3b64e4446744d11b';
+
+@ProviderFor(DashboardNotifier)
+final dashboardProvider = DashboardNotifierProvider._();
+
+final class DashboardNotifierProvider
+    extends $NotifierProvider<DashboardNotifier, DashboardState> {
+  DashboardNotifierProvider._()
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'dashboardProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$dashboardNotifierHash();
+
+  @$internal
+  @override
+  DashboardNotifier create() => DashboardNotifier();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(DashboardState value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<DashboardState>(value),
+    );
+  }
+}
+
+String _$dashboardNotifierHash() => r'285465cc7540d978f46878782327b4e129cb09a8';
+
+abstract class _$DashboardNotifier extends $Notifier<DashboardState> {
+  DashboardState build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<DashboardState, DashboardState>;
+    final element = ref.element as $ClassProviderElement<
+        AnyNotifier<DashboardState, DashboardState>,
+        DashboardState,
+        Object?,
+        Object?>;
+    element.handleCreate(ref, build);
+  }
+}
