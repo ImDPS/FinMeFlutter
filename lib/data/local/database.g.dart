@@ -499,9 +499,15 @@ class $TransactionsTable extends Transactions
   late final GeneratedColumn<String> source = GeneratedColumn<String>(
       'source', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _smsHashMeta =
+      const VerificationMeta('smsHash');
+  @override
+  late final GeneratedColumn<String> smsHash = GeneratedColumn<String>(
+      'sms_hash', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns =>
-      [id, accountId, amount, category, merchant, date, note, source];
+      [id, accountId, amount, category, merchant, date, note, source, smsHash];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -555,6 +561,10 @@ class $TransactionsTable extends Transactions
     } else if (isInserting) {
       context.missing(_sourceMeta);
     }
+    if (data.containsKey('sms_hash')) {
+      context.handle(_smsHashMeta,
+          smsHash.isAcceptableOrUnknown(data['sms_hash']!, _smsHashMeta));
+    }
     return context;
   }
 
@@ -580,6 +590,8 @@ class $TransactionsTable extends Transactions
           .read(DriftSqlType.string, data['${effectivePrefix}note'])!,
       source: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}source'])!,
+      smsHash: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}sms_hash']),
     );
   }
 
@@ -598,6 +610,7 @@ class Transaction extends DataClass implements Insertable<Transaction> {
   final DateTime date;
   final String note;
   final String source;
+  final String? smsHash;
   const Transaction(
       {required this.id,
       required this.accountId,
@@ -606,7 +619,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       required this.merchant,
       required this.date,
       required this.note,
-      required this.source});
+      required this.source,
+      this.smsHash});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -618,6 +632,9 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     map['date'] = Variable<DateTime>(date);
     map['note'] = Variable<String>(note);
     map['source'] = Variable<String>(source);
+    if (!nullToAbsent || smsHash != null) {
+      map['sms_hash'] = Variable<String>(smsHash);
+    }
     return map;
   }
 
@@ -631,6 +648,9 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       date: Value(date),
       note: Value(note),
       source: Value(source),
+      smsHash: smsHash == null && nullToAbsent
+          ? const Value.absent()
+          : Value(smsHash),
     );
   }
 
@@ -646,6 +666,7 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       date: serializer.fromJson<DateTime>(json['date']),
       note: serializer.fromJson<String>(json['note']),
       source: serializer.fromJson<String>(json['source']),
+      smsHash: serializer.fromJson<String?>(json['smsHash']),
     );
   }
   @override
@@ -660,6 +681,7 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       'date': serializer.toJson<DateTime>(date),
       'note': serializer.toJson<String>(note),
       'source': serializer.toJson<String>(source),
+      'smsHash': serializer.toJson<String?>(smsHash),
     };
   }
 
@@ -671,7 +693,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           String? merchant,
           DateTime? date,
           String? note,
-          String? source}) =>
+          String? source,
+          Value<String?> smsHash = const Value.absent()}) =>
       Transaction(
         id: id ?? this.id,
         accountId: accountId ?? this.accountId,
@@ -681,6 +704,7 @@ class Transaction extends DataClass implements Insertable<Transaction> {
         date: date ?? this.date,
         note: note ?? this.note,
         source: source ?? this.source,
+        smsHash: smsHash.present ? smsHash.value : this.smsHash,
       );
   Transaction copyWithCompanion(TransactionsCompanion data) {
     return Transaction(
@@ -692,6 +716,7 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       date: data.date.present ? data.date.value : this.date,
       note: data.note.present ? data.note.value : this.note,
       source: data.source.present ? data.source.value : this.source,
+      smsHash: data.smsHash.present ? data.smsHash.value : this.smsHash,
     );
   }
 
@@ -705,14 +730,15 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           ..write('merchant: $merchant, ')
           ..write('date: $date, ')
           ..write('note: $note, ')
-          ..write('source: $source')
+          ..write('source: $source, ')
+          ..write('smsHash: $smsHash')
           ..write(')'))
         .toString();
   }
 
   @override
   int get hashCode => Object.hash(
-      id, accountId, amount, category, merchant, date, note, source);
+      id, accountId, amount, category, merchant, date, note, source, smsHash);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -724,7 +750,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           other.merchant == this.merchant &&
           other.date == this.date &&
           other.note == this.note &&
-          other.source == this.source);
+          other.source == this.source &&
+          other.smsHash == this.smsHash);
 }
 
 class TransactionsCompanion extends UpdateCompanion<Transaction> {
@@ -736,6 +763,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
   final Value<DateTime> date;
   final Value<String> note;
   final Value<String> source;
+  final Value<String?> smsHash;
   final Value<int> rowid;
   const TransactionsCompanion({
     this.id = const Value.absent(),
@@ -746,6 +774,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     this.date = const Value.absent(),
     this.note = const Value.absent(),
     this.source = const Value.absent(),
+    this.smsHash = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   TransactionsCompanion.insert({
@@ -757,6 +786,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     required DateTime date,
     this.note = const Value.absent(),
     required String source,
+    this.smsHash = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         accountId = Value(accountId),
@@ -773,6 +803,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     Expression<DateTime>? date,
     Expression<String>? note,
     Expression<String>? source,
+    Expression<String>? smsHash,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -784,6 +815,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
       if (date != null) 'date': date,
       if (note != null) 'note': note,
       if (source != null) 'source': source,
+      if (smsHash != null) 'sms_hash': smsHash,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -797,6 +829,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
       Value<DateTime>? date,
       Value<String>? note,
       Value<String>? source,
+      Value<String?>? smsHash,
       Value<int>? rowid}) {
     return TransactionsCompanion(
       id: id ?? this.id,
@@ -807,6 +840,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
       date: date ?? this.date,
       note: note ?? this.note,
       source: source ?? this.source,
+      smsHash: smsHash ?? this.smsHash,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -838,6 +872,9 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     if (source.present) {
       map['source'] = Variable<String>(source.value);
     }
+    if (smsHash.present) {
+      map['sms_hash'] = Variable<String>(smsHash.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -855,6 +892,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
           ..write('date: $date, ')
           ..write('note: $note, ')
           ..write('source: $source, ')
+          ..write('smsHash: $smsHash, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2337,6 +2375,7 @@ typedef $$TransactionsTableCreateCompanionBuilder = TransactionsCompanion
   required DateTime date,
   Value<String> note,
   required String source,
+  Value<String?> smsHash,
   Value<int> rowid,
 });
 typedef $$TransactionsTableUpdateCompanionBuilder = TransactionsCompanion
@@ -2349,6 +2388,7 @@ typedef $$TransactionsTableUpdateCompanionBuilder = TransactionsCompanion
   Value<DateTime> date,
   Value<String> note,
   Value<String> source,
+  Value<String?> smsHash,
   Value<int> rowid,
 });
 
@@ -2384,6 +2424,9 @@ class $$TransactionsTableFilterComposer
 
   ColumnFilters<String> get source => $composableBuilder(
       column: $table.source, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get smsHash => $composableBuilder(
+      column: $table.smsHash, builder: (column) => ColumnFilters(column));
 }
 
 class $$TransactionsTableOrderingComposer
@@ -2418,6 +2461,9 @@ class $$TransactionsTableOrderingComposer
 
   ColumnOrderings<String> get source => $composableBuilder(
       column: $table.source, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get smsHash => $composableBuilder(
+      column: $table.smsHash, builder: (column) => ColumnOrderings(column));
 }
 
 class $$TransactionsTableAnnotationComposer
@@ -2452,6 +2498,9 @@ class $$TransactionsTableAnnotationComposer
 
   GeneratedColumn<String> get source =>
       $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<String> get smsHash =>
+      $composableBuilder(column: $table.smsHash, builder: (column) => column);
 }
 
 class $$TransactionsTableTableManager extends RootTableManager<
@@ -2488,6 +2537,7 @@ class $$TransactionsTableTableManager extends RootTableManager<
             Value<DateTime> date = const Value.absent(),
             Value<String> note = const Value.absent(),
             Value<String> source = const Value.absent(),
+            Value<String?> smsHash = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               TransactionsCompanion(
@@ -2499,6 +2549,7 @@ class $$TransactionsTableTableManager extends RootTableManager<
             date: date,
             note: note,
             source: source,
+            smsHash: smsHash,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -2510,6 +2561,7 @@ class $$TransactionsTableTableManager extends RootTableManager<
             required DateTime date,
             Value<String> note = const Value.absent(),
             required String source,
+            Value<String?> smsHash = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               TransactionsCompanion.insert(
@@ -2521,6 +2573,7 @@ class $$TransactionsTableTableManager extends RootTableManager<
             date: date,
             note: note,
             source: source,
+            smsHash: smsHash,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0

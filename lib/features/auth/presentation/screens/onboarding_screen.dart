@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:finme/core/theme/app_colors.dart';
 import 'package:finme/core/theme/app_text_styles.dart';
+import 'package:finme/features/auth/presentation/providers/auth_provider.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -13,7 +14,6 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _phoneController = TextEditingController();
-  bool _loading = false;
 
   @override
   void dispose() {
@@ -23,6 +23,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+    final isLoading = authState.status == AuthStatus.loading;
+
+    ref.listen(authProvider, (prev, next) {
+      if (next.status == AuthStatus.otpSent) {
+        context.go('/otp');
+      }
+    });
+
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -51,17 +60,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   ),
                 ),
               ),
+              if (authState.error != null) ...[
+                const SizedBox(height: 12),
+                Text(authState.error!, style: AppTextStyles.caption.copyWith(color: AppColors.danger)),
+              ],
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _loading ? null : _sendOtp,
+                  onPressed: isLoading ? null : _sendOtp,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: _loading
+                  child: isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
                       : const Text('Send OTP', style: TextStyle(color: Colors.white)),
                 ),
@@ -75,12 +88,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _sendOtp() async {
-    setState(() => _loading = true);
-    // TODO: wire up authRepositoryProvider + navigate to OTP screen
-    await Future.delayed(const Duration(seconds: 1));
-    if (mounted) {
-      setState(() => _loading = false);
-      context.go('/otp');
-    }
+    final phone = _phoneController.text.trim();
+    if (phone.isEmpty) return;
+    await ref.read(authProvider.notifier).sendOtp(phone);
   }
 }

@@ -27,15 +27,4 @@ class NetWorthRepository {
     }
     return grouped;
   }
-
-  Future<List<Account>> getExpiringConsentAccounts() async {
-    final accounts = await _db.accountsDao.getAllAccounts();
-    final now = DateTime.now();
-    return accounts.where((a) =>
-      a.consentExpiryDate != null &&
-      a.consentExpiryDate!.difference(now).inDays <= 7 &&
-      a.consentExpiryDate!.isAfter(now) &&
-      a.consentStatus != 'manual',
-    ).toList();
-  }
 }

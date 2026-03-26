@@ -6,6 +6,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
 import 'package:finme/data/local/database.dart';
+import 'package:finme/data/local/database_provider.dart';
 
 part 'settings_provider.g.dart';
 
@@ -25,7 +26,15 @@ class SettingsState {
 
 @riverpod
 class SettingsNotifier extends _$SettingsNotifier {
-  AppDatabase get _db => AppDatabase.forTesting();
+  AppDatabase? _db;
+
+  Future<AppDatabase> _getDb() async {
+    final db = _db;
+    if (db != null) return db;
+    final newDb = await ref.read(appDatabaseProvider.future);
+    _db = newDb;
+    return newDb;
+  }
 
   @override
   SettingsState build() {
@@ -34,8 +43,9 @@ class SettingsNotifier extends _$SettingsNotifier {
   }
 
   Future<void> _load() async {
-    final settings = await _db.userSettingsDao.getSettings();
-    final allAccounts = await _db.accountsDao.getAllAccounts();
+    final db = await _getDb();
+    final settings = await db.userSettingsDao.getSettings();
+    final allAccounts = await db.accountsDao.getAllAccounts();
     state = SettingsState(
       monthlyIncomeInr: settings?.monthlyIncomeInr ?? 0,
       appLockTimeoutSeconds: settings?.appLockTimeoutSeconds ?? 30,
@@ -44,7 +54,8 @@ class SettingsNotifier extends _$SettingsNotifier {
   }
 
   Future<void> setMonthlyIncome(int amount) async {
-    await _db.userSettingsDao.upsertSettings(
+    final db = await _getDb();
+    await db.userSettingsDao.upsertSettings(
       UserSettingsCompanion.insert(
         id: 'singleton',
         monthlyIncomeInr: Value(amount),
@@ -59,7 +70,8 @@ class SettingsNotifier extends _$SettingsNotifier {
   }
 
   Future<void> setLockTimeout(int seconds) async {
-    await _db.userSettingsDao.upsertSettings(
+    final db = await _getDb();
+    await db.userSettingsDao.upsertSettings(
       UserSettingsCompanion.insert(
         id: 'singleton',
         monthlyIncomeInr: Value(state.monthlyIncomeInr),
@@ -74,7 +86,8 @@ class SettingsNotifier extends _$SettingsNotifier {
   }
 
   Future<void> addManualAccount({required String name, required String type, required int balance}) async {
-    await _db.accountsDao.insertAccount(AccountsCompanion.insert(
+    final db = await _getDb();
+    await db.accountsDao.insertAccount(AccountsCompanion.insert(
       id: _uuid.v4(),
       name: name,
       type: type,
@@ -86,12 +99,14 @@ class SettingsNotifier extends _$SettingsNotifier {
   }
 
   Future<void> deleteManualAccount(String id) async {
-    await _db.accountsDao.deleteAccount(id);
+    final db = await _getDb();
+    await db.accountsDao.deleteAccount(id);
     await _load();
   }
 
   Future<void> exportCsv() async {
-    final txs = await _db.transactionsDao.getAllTransactions();
+    final db = await _getDb();
+    final txs = await db.transactionsDao.getAllTransactions();
     final rows = [
       ['Date', 'Merchant', 'Amount', 'Category', 'AccountId', 'Note', 'Source'],
       ...txs.map((t) => [

@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:finme/data/local/database.dart';
+import 'package:finme/data/local/database_provider.dart';
 import 'package:finme/features/transactions/data/transactions_repository.dart';
 
 part 'transactions_provider.g.dart';
@@ -7,14 +8,17 @@ part 'transactions_provider.g.dart';
 typedef TransactionList = List<Transaction>;
 
 @riverpod
-TransactionsRepository transactionsRepository(Ref ref) =>
-    TransactionsRepository(db: AppDatabase.forTesting());
+Future<TransactionsRepository> transactionsRepository(Ref ref) async {
+  final db = await ref.watch(appDatabaseProvider.future);
+  return TransactionsRepository(db: db);
+}
 
 @riverpod
 class TransactionsNotifier extends _$TransactionsNotifier {
   @override
   Future<TransactionList> build() async {
-    return ref.read(transactionsRepositoryProvider).getAllTransactions();
+    final repo = await ref.read(transactionsRepositoryProvider.future);
+    return repo.getAllTransactions();
   }
 
   Future<void> add({
@@ -25,7 +29,8 @@ class TransactionsNotifier extends _$TransactionsNotifier {
     required DateTime date,
     String note = '',
   }) async {
-    await ref.read(transactionsRepositoryProvider).addTransaction(
+    final repo = await ref.read(transactionsRepositoryProvider.future);
+    await repo.addTransaction(
       accountId: accountId,
       amount: amount,
       merchant: merchant,
@@ -37,7 +42,8 @@ class TransactionsNotifier extends _$TransactionsNotifier {
   }
 
   Future<void> delete(String id) async {
-    await ref.read(transactionsRepositoryProvider).deleteTransaction(id);
+    final repo = await ref.read(transactionsRepositoryProvider.future);
+    await repo.deleteTransaction(id);
     ref.invalidateSelf();
   }
 }

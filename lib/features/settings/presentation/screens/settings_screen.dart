@@ -4,6 +4,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:finme/core/theme/app_colors.dart';
 import 'package:finme/core/theme/app_text_styles.dart';
 import 'package:finme/core/widgets/glass_card.dart';
+import 'package:go_router/go_router.dart';
 import 'package:finme/features/settings/presentation/providers/settings_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -89,6 +90,14 @@ class SettingsScreen extends ConsumerWidget {
           GlassCard(
             child: Column(
               children: [
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(LucideIcons.messageSquare, color: AppColors.primary),
+                  title: Text('Import from SMS', style: AppTextStyles.body),
+                  subtitle: Text('Scan bank SMS for transactions', style: AppTextStyles.caption),
+                  onTap: () => context.push('/sms-import'),
+                ),
+                const Divider(color: AppColors.glassBorder),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(LucideIcons.download, color: AppColors.primary),

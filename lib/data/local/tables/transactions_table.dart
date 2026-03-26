@@ -9,6 +9,7 @@ class Transactions extends Table {
   DateTimeColumn get date => dateTime()();
   TextColumn get note => text().withDefault(const Constant(''))();
   TextColumn get source => text()();
+  TextColumn get smsHash => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};

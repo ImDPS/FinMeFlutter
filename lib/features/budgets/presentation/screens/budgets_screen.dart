@@ -146,15 +146,17 @@ class BudgetsScreen extends ConsumerWidget {
   }
 }
 
-class _BudgetCard extends StatelessWidget {
+class _BudgetCard extends ConsumerWidget {
   const _BudgetCard({required this.budget, required this.onDelete});
   final Budget budget;
   final VoidCallback onDelete;
 
   @override
-  Widget build(BuildContext context) {
-    // TODO: wire up actual spending from TransactionsRepository
-    const int spent = 0;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final spendingAsync = ref.watch(categorySpendingProvider);
+    final int spent = spendingAsync.whenOrNull(
+      data: (Map<String, int> map) => map[budget.category],
+    ) ?? 0;
     final double ratio = budget.limitAmount > 0 ? spent / budget.limitAmount : 0.0;
     final BudgetColor color = BudgetsRepository.getBudgetColor(spent, budget.limitAmount);
     final Color colorValue = BudgetsRepository.getBudgetColorValue(color);

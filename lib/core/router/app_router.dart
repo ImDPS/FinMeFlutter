@@ -9,6 +9,7 @@ import 'package:finme/features/transactions/presentation/screens/transactions_sc
 import 'package:finme/features/budgets/presentation/screens/budgets_screen.dart';
 import 'package:finme/features/net_worth/presentation/screens/net_worth_screen.dart';
 import 'package:finme/features/settings/presentation/screens/settings_screen.dart';
+import 'package:finme/features/sms_import/presentation/screens/sms_import_screen.dart';
 
 part 'app_router.g.dart';
 
@@ -20,6 +21,7 @@ GoRouter appRouter(Ref ref) {
       GoRoute(path: '/onboarding', builder: (_, __) => const OnboardingScreen()),
       GoRoute(path: '/otp',        builder: (_, __) => const OtpScreen()),
       GoRoute(path: '/lock',       builder: (_, __) => const AppLockScreen()),
+      GoRoute(path: '/sms-import', builder: (_, __) => const SmsImportScreen()),
       ShellRoute(
         builder: (_, state, child) {
           final index = _tabIndex(state.matchedLocation);

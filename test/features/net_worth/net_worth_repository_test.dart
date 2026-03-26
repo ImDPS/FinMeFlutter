@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide isNotNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:finme/data/local/database.dart';
 import 'package:finme/features/net_worth/data/net_worth_repository.dart';
@@ -28,15 +28,13 @@ void main() {
       expect(netWorth, 80000);
     });
 
-    test('getExpiringConsentAccounts returns accounts expiring within 7 days', () async {
-      final soonExpiry = DateTime.now().add(const Duration(days: 3));
+    test('getAccountsByType groups accounts correctly', () async {
       await db.accountsDao.insertAccount(AccountsCompanion.insert(
         id: 'a3', name: 'ICICI', type: 'savings', institution: 'ICICI',
-        consentExpiryDate: Value(soonExpiry),
-        consentStatus: const Value('active'),
+        balance: const Value(50000),
       ));
-      final expiring = await repo.getExpiringConsentAccounts();
-      expect(expiring.length, 1);
+      final byType = await repo.getAccountsByType();
+      expect(byType['savings'], isNotNull);
     });
   });
 }

@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:finme/data/local/database.dart';
+import 'package:finme/data/local/database_provider.dart';
 import 'package:finme/features/net_worth/data/net_worth_repository.dart';
 
 part 'net_worth_provider.g.dart';
@@ -10,7 +11,6 @@ class NetWorthState {
     this.totalAssets = 0,
     this.totalLiabilities = 0,
     this.accountsByType = const {},
-    this.expiringAccounts = const [],
     this.isLoading = false,
   });
 
@@ -18,13 +18,14 @@ class NetWorthState {
   final int totalAssets;
   final int totalLiabilities;
   final Map<String, List<Account>> accountsByType;
-  final List<Account> expiringAccounts;
   final bool isLoading;
 }
 
 @riverpod
-NetWorthRepository netWorthRepository(Ref ref) =>
-    NetWorthRepository(db: AppDatabase.forTesting());
+Future<NetWorthRepository> netWorthRepository(Ref ref) async {
+  final db = await ref.watch(appDatabaseProvider.future);
+  return NetWorthRepository(db: db);
+}
 
 @riverpod
 class NetWorthNotifier extends _$NetWorthNotifier {
@@ -41,22 +42,19 @@ class NetWorthNotifier extends _$NetWorthNotifier {
       totalAssets: state.totalAssets,
       totalLiabilities: state.totalLiabilities,
       accountsByType: state.accountsByType,
-      expiringAccounts: state.expiringAccounts,
     );
-    final repo = ref.read(netWorthRepositoryProvider);
-    final results = await Future.wait([
+    final repo = await ref.read(netWorthRepositoryProvider.future);
+    final results = await Future.wait<Object>([
       repo.getTotalNetWorth(),
       repo.getTotalAssets(),
       repo.getTotalLiabilities(),
       repo.getAccountsByType(),
-      repo.getExpiringConsentAccounts(),
     ]);
     state = NetWorthState(
       totalNetWorth:    results[0] as int,
       totalAssets:      results[1] as int,
       totalLiabilities: results[2] as int,
       accountsByType:   results[3] as Map<String, List<Account>>,
-      expiringAccounts: results[4] as List<Account>,
     );
   }
 }

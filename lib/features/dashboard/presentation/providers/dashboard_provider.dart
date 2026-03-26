@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:finme/data/local/database.dart';
+import 'package:finme/data/local/database_provider.dart';
 import 'package:finme/features/dashboard/data/dashboard_repository.dart';
 
 part 'dashboard_provider.g.dart';
@@ -39,10 +40,9 @@ class DashboardState {
 }
 
 @riverpod
-DashboardRepository dashboardRepository(Ref ref) {
-  // In production, wire up with real AppDatabase provider
-  // For now, creates a testing instance (will be replaced when DB provider is added)
-  return DashboardRepository(db: AppDatabase.forTesting());
+Future<DashboardRepository> dashboardRepository(Ref ref) async {
+  final db = await ref.watch(appDatabaseProvider.future);
+  return DashboardRepository(db: db);
 }
 
 @riverpod
@@ -56,7 +56,7 @@ class DashboardNotifier extends _$DashboardNotifier {
   Future<void> load() async {
     state = state.copyWith(isLoading: true);
     try {
-      final repo = ref.read(dashboardRepositoryProvider);
+      final repo = await ref.read(dashboardRepositoryProvider.future);
       final results = await Future.wait([
         repo.totalBalanceInr(),
         repo.currentMonthSpend(),

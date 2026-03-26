@@ -85,7 +85,7 @@ final class NetWorthNotifierProvider
   }
 }
 
-String _$netWorthNotifierHash() => r'bbb49021a1b16084892a00523a451e268ca37559';
+String _$netWorthNotifierHash() => r'3f968cd41b552d489ca823541302cb5b7af48e2a';
 
 abstract class _$NetWorthNotifier extends $Notifier<NetWorthState> {
   NetWorthState build();

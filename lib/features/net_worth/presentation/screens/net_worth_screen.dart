@@ -36,10 +36,6 @@ class NetWorthScreen extends ConsumerWidget {
               child: ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
-                  // Consent expiry banner
-                  if (s.expiringAccounts.isNotEmpty)
-                    _ConsentBanner(accounts: s.expiringAccounts),
-
                   // Net worth summary
                   GlassCard(
                     child: Column(
@@ -115,32 +111,6 @@ class _Metric extends StatelessWidget {
       Text(label, style: AppTextStyles.caption),
       Text(CurrencyFormatter.format(value), style: AppTextStyles.body.copyWith(color: color)),
     ],
-  );
-}
-
-class _ConsentBanner extends StatelessWidget {
-  const _ConsentBanner({required this.accounts});
-  final List<Account> accounts;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    margin: const EdgeInsets.only(bottom: 12),
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: AppColors.warning.withValues(alpha: 0.15),
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: AppColors.warning.withValues(alpha: 0.5)),
-    ),
-    child: Row(
-      children: [
-        const Icon(LucideIcons.alertTriangle, color: AppColors.warning, size: 18),
-        const SizedBox(width: 8),
-        Expanded(child: Text(
-          '${accounts.length} account(s) consent expiring soon — re-authorise to continue syncing',
-          style: AppTextStyles.caption.copyWith(color: AppColors.warning),
-        )),
-      ],
-    ),
   );
 }
 

@@ -30,4 +30,12 @@ class TransactionsDao extends DatabaseAccessor<AppDatabase> with _$TransactionsD
 
   Future<void> deleteTransaction(String id) =>
       (delete(transactions)..where((t) => t.id.equals(id))).go();
+
+  Future<Set<String>> getAllSmsHashes() async {
+    final rows = await (selectOnly(transactions)
+          ..addColumns([transactions.smsHash])
+          ..where(transactions.smsHash.isNotNull()))
+        .get();
+    return rows.map((r) => r.read(transactions.smsHash)!).toSet();
+  }
 }

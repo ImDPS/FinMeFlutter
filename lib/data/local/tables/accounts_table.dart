@@ -7,6 +7,7 @@ class Accounts extends Table {
   TextColumn get institution => text()();
   IntColumn get balance => integer().withDefault(const Constant(0))();
   DateTimeColumn get lastSynced => dateTime().nullable()();
+  // Legacy AA fields — unused after Setu AA removal; kept to avoid schema migration
   DateTimeColumn get consentExpiryDate => dateTime().nullable()();
   TextColumn get consentStatus => text().withDefault(const Constant('manual'))();
 

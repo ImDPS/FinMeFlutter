@@ -1,7 +1,15 @@
+import 'dart:io';
+import 'package:drift/drift.dart';
+import 'package:drift/native.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:workmanager/workmanager.dart';
+import 'package:finme/data/local/database.dart';
+import 'package:finme/data/sync/firestore_service.dart';
 import 'package:finme/data/sync/sync_engine.dart';
 
-const String kAARefreshTask = 'finme.aa_refresh';
+const String kBackgroundSyncTask = 'finme.background_sync';
 
 /// Wraps SyncEngine for WorkManager background execution.
 class BackgroundSyncWorker {
@@ -18,9 +26,35 @@ class BackgroundSyncWorker {
 @pragma('vm:entry-point')
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
-    if (task == kAARefreshTask) {
-      // In production: initialize AppDatabase + SyncEngine + FirestoreService here
-      // For now, we register the task but skip heavy init in the background isolate
+    if (task == kBackgroundSyncTask) {
+      // Background isolate: no Riverpod, so initialize DB + services manually.
+      final dir = await getApplicationDocumentsDirectory();
+      final dbPath = p.join(dir.path, 'finme.db');
+
+      const storage = FlutterSecureStorage();
+      final key = await storage.read(key: 'db_encryption_key');
+      if (key == null) return true; // No DB key yet — nothing to sync
+
+      final db = AppDatabase(
+        DatabaseConnection(
+          NativeDatabase(
+            File(dbPath),
+            setup: (rawDb) {
+              rawDb.execute("PRAGMA key = '$key'");
+            },
+          ),
+        ),
+      );
+
+      try {
+        final syncEngine = SyncEngine(
+          db: db,
+          firestoreService: FirestoreService(),
+        );
+        await syncEngine.flush();
+      } finally {
+        await db.close();
+      }
     }
     return true;
   });
@@ -31,8 +65,8 @@ void callbackDispatcher() {
 Future<void> registerBackgroundSync() async {
   await Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
   await Workmanager().registerPeriodicTask(
-    kAARefreshTask,
-    kAARefreshTask,
+    kBackgroundSyncTask,
+    kBackgroundSyncTask,
     frequency: const Duration(hours: 24),
     constraints: Constraints(networkType: NetworkType.connected),
     existingWorkPolicy: ExistingWorkPolicy.keep,

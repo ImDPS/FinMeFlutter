@@ -38,7 +38,18 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (migrator, from, to) async {
+      if (from < 2) {
+        await customStatement(
+          'ALTER TABLE transactions ADD COLUMN sms_hash TEXT',
+        );
+      }
+    },
+  );
 
   /// In-memory database for unit tests (no SQLCipher needed in tests)
   factory AppDatabase.forTesting() {
