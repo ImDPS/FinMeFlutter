@@ -1,8 +1,6 @@
 import 'dart:math';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
-// ignore: unused_import
-import 'package:drift_flutter/drift_flutter.dart';
 import 'package:finme/data/local/tables/accounts_table.dart';
 import 'package:finme/data/local/tables/transactions_table.dart';
 import 'package:finme/data/local/tables/budgets_table.dart';
